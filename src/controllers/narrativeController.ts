@@ -25,7 +25,8 @@ export default class NarrativeController {
         narrativeLength,
         chatId,
         parentMessageId,
-        originalTask
+        originalTask,
+        newInstruction
       } = req.body;
 
       const requiredShort = [industry, brandValues, targetAudience, brandMission, usp];
@@ -69,12 +70,17 @@ export default class NarrativeController {
       let newChatId = chatId || uuidv4();
       let origTask = originalTask;
 
+      let lastMessageId: string | null = null;
       if (chatId) {
         const prevChats = await postgreDb.select().from(chats).where(eq(chats.chatId, chatId));
         chatHistory = prevChats.map((c: any) => c.chat);
         if (!origTask && chatHistory.length > 0) {
           const firstUserMsg = chatHistory.find((m: any) => m.role === "user");
           origTask = firstUserMsg?.content;
+        }
+        // For parentMessageId threading, get the last message id
+        if (prevChats.length > 0) {
+          lastMessageId = prevChats[prevChats.length - 1].id?.toString();
         }
       }
 
@@ -109,36 +115,32 @@ export default class NarrativeController {
             narrativeLength: "long"
           };
 
-      const prompt = buildPrompt(promptParams, chatHistory, origTask);
+
+      // Build prompt with all context (originalTask, chatHistory, newInstruction)
+      const prompt = buildPrompt(promptParams, chatHistory, origTask, newInstruction);
       const response = await generateNarrativeFromGroq(prompt);
 
-      const userMsg = {
-        role: "user",
-        content: prompt,
-        parentMessageId: parentMessageId || null
-      };
+      // Save user message first, get its id, then save assistant message with that as parent
+      const [userMsgRow] = await postgreDb.insert(chats).values([
+        {
+          chatId: newChatId,
+          chat: JSON.stringify({ role: "user", content: newInstruction || prompt }),
+          userId: existingUser.id,
+          publicId: existingUser.publicId,
+          parentMessageId: lastMessageId || parentMessageId || null,
+          messageRole: "user"
+        }
+      ]).returning();
 
-      const assistantMsg = {
-        role: "assistant",
-        content: response,
-        parentMessageId: parentMessageId || null
-      };
+      const userMsgId = userMsgRow?.id?.toString() || null;
 
       await postgreDb.insert(chats).values([
         {
           chatId: newChatId,
-          chat: JSON.stringify(userMsg),
+          chat: JSON.stringify({ role: "assistant", content: response }),
           userId: existingUser.id,
           publicId: existingUser.publicId,
-          parentMessageId: parentMessageId || null,
-          messageRole: "user"
-        },
-        {
-          chatId: newChatId,
-          chat: JSON.stringify(assistantMsg),
-          userId: existingUser.id,
-          publicId: existingUser.publicId,
-          parentMessageId: parentMessageId || null,
+          parentMessageId: userMsgId,
           messageRole: "assistant"
         }
       ]);
