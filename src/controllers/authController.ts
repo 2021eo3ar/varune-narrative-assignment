@@ -60,7 +60,7 @@ export default class authController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
 
-      res.cookie("user", JSON.stringify(userExists), { httpOnly: false });
+      res.cookie("user", JSON.stringify(responseUser), { httpOnly: false });
 
       return res.redirect(envConfigs.CLIENT_REDIRECT_URL);
     } catch (error) {

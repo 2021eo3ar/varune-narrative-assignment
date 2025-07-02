@@ -17,7 +17,7 @@ export const users = pgTable("users", {
     .notNull()
     .unique()
     .$defaultFn(() => generateShortUUID()), // Generate 8-char UUID
-  credits: integer("credits").notNull().default(10), // Daily credits
+  credits: integer("credits").notNull().default(50), // Daily credits
   lastCreditReset: timestamp("last_credit_reset").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow()

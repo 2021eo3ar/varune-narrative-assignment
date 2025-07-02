@@ -61,10 +61,13 @@ export default class NarrativeController {
 
       const { userId, email } = req.user as { userId: number; email: string };
 
-      const existingUser = await UserService.getUser(email);
+      let existingUser = await UserService.getUser(email);
       if (!existingUser) {
         return res.status(404).json({ success: false, message: "User not found" });
       }
+
+      // Reset credits if 24 hours have passed since last reset
+      existingUser = await UserService.resetCreditsIfNeeded(existingUser);
 
       let chatHistory: any[] = [];
       let newChatId = chatId || uuidv4();
@@ -158,4 +161,43 @@ export default class NarrativeController {
       res.status(500).json({ success: false, message: "Internal server error" });
     }
   }
+   
+   static getAllChats = async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { userId, email } = req.user as any;
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: "userId not found",
+        });
+      }
+
+      const existingUser = await UserService.getUser(email);
+      if (!existingUser)
+        return res.status(404).json({
+          success: false,
+          message: "user not found",
+        });
+
+      const allChats = await UserService.getAllChats(userId);
+      if (!allChats) {
+        return res.status(404).json({
+          success: false,
+          message: "no chats found for the user",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "User's chats found successfully",
+        allChats,
+      });
+    } catch (error) {
+      console.error("internal server error occured: ", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+  };
 }

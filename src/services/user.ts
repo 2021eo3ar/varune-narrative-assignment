@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import postgreDb from "../config/dbConfig";
-import { users } from "../db/schema";
+import { chats, users } from "../db/schema";
 
 export default class UserService {
 
@@ -13,6 +13,34 @@ export default class UserService {
       return user;
     } catch (error) {
       console.error("some error occured: ", error);
+    }
+  };
+
+  static getAllChats = async (publicId: string) => {
+    try {
+      // Fetch all chats for the user, ordered by createdAt (oldest to newest)
+      const allChats = await postgreDb
+        .select()
+        .from(chats)
+        .where(eq(chats.publicId, publicId))
+        .orderBy(chats.chatId, chats.createdAt);
+
+      // Group by chatId
+      const grouped: Record<string, any[]> = {};
+      for (const chat of allChats) {
+        const chatId = chat.chatId;
+        if (!grouped[chatId]) grouped[chatId] = [];
+        grouped[chatId].push(chat);
+      }
+
+      // Convert to array of { chatId, chats: [...] }
+      const result = Object.entries(grouped).map(([chatId, chats]) => ({
+        chatId,
+        chats,
+      }));
+      return result;
+    } catch (error) {
+      console.error("error occured while fetching chats:", error);
     }
   };
 
@@ -30,11 +58,8 @@ export default class UserService {
   static resetCreditsIfNeeded = async (user: any, dailyLimit = 10) => {
     const now = new Date();
     const lastReset = user.lastCreditReset ? new Date(user.lastCreditReset) : null;
-    // Compare by day, month, year (not just ms diff)
-    const needsReset = !lastReset ||
-      now.getDate() !== lastReset.getDate() ||
-      now.getMonth() !== lastReset.getMonth() ||
-      now.getFullYear() !== lastReset.getFullYear();
+    // Reset if never set or more than 24 hours have passed
+    const needsReset = !lastReset || (now.getTime() - lastReset.getTime() >= 24 * 60 * 60 * 1000);
     if (needsReset) {
       await postgreDb
         .update(users)
