@@ -1,0 +1,10 @@
+import express from "express";
+import { authenticate } from "passport";
+import { authenticateUser } from "../middlewares";
+import { checkAndDeductCredits } from "../middlewares/creditMiddleware";
+import  {narrativeController}  from "../controllers";
+
+const router = express.Router();
+
+router.post("/generate", authenticateUser, checkAndDeductCredits(1), narrativeController.generateNarrative)
+export default router;
