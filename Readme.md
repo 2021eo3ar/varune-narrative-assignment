@@ -1,81 +1,145 @@
-# FourPaws Backend
+# Varune Brand Narrative AI Backend
 
-This repository contains the backend services for **FourPaws**, a social and management platform for pets and their caregivers. The project is written in TypeScript and uses Express with Drizzle ORM on PostgreSQL.
+This repository contains the backend for **Varune**, an AI-powered platform for generating robust, context-aware brand narratives with chat continuity (like ChatGPT), a credit-based system, and flexible prompt logic. Built with TypeScript, Express, Drizzle ORM, and PostgreSQL.
 
-## Documentation
-* [Project Structure](docs/file-structure.md)
-* [API Reference](docs/api-reference.md)
+---
 
-## Features
-- User and pet profile management
-- Social feed with posts, comments and likes
-- Municipal pet registration workflow
-- Marketplace and payments
-- Media uploads and notifications
+## 🚀 Features
 
-## Architecture
-The platform follows a microservice approach. Core services include Auth, User, Pet, Social Feed, Media, Municipal Registration, E-Commerce, Collectibles, Health & Vet and Notification services. Services communicate via REST APIs through an API gateway and use a message queue for long running tasks. PostgreSQL acts as the primary database with Redis for caching. Media files are stored on S3 compatible storage behind a CDN.
+- **Context-Aware Narrative Generation:**
+  - Supports both short and long narratives with dynamic prompt building.
+  - Maintains chat continuity (threaded conversations) for follow-up instructions.
+- **Credit-Based System:**
+  - Users have credits that are checked and decremented per narrative request.
+- **Flexible Prompt Logic:**
+  - Prompts are built using original task, chat history, and new user instructions.
+- **Extensible & Modular:**
+  - Clean code structure for easy feature addition and maintenance.
+
+---
+
+## 📁 Folder Structure
 
 ```
-┌────────────────┐      ┌──────────────────┐     ┌─────────────────┐
-│  Next.js API   │─────▶│  API Gateway /   │────▶│  Service Mesh   │
-│ (or Express)   │      │  Load Balancer   │     └────────┬────────┘
-└────────────────┘      └──────────────────┘              │
-       ▲                                                   ▼
-       │                                         ┌──────────────────┐
-       │                                         │  Microservices   │
-       │                                         │  (Node + TS)     │
-       │                                         └──────────────────┘
-       │                                                   │
-       ▼                                                   ▼
-┌────────────────┐        ┌─────────────────────────┐    ┌────────────────┐
-│  Drizzle ORM   │◀───────│  PostgreSQL (Primary)   │    │  Redis / Cache │
-└────────────────┘        └─────────────────────────┘    └────────────────┘
-       │                                                   ▲
-       ▼                                                   │
-┌────────────────┐        ┌─────────────────────────┐    ┌────────────────┐
-│  File Storage  │        │  Message Queue (e.g.    │    │  Notifications │
-│ (S3 / R2 / GCS)│        │   RabbitMQ / Kafka)     │    └────────────────┘
-└────────────────┘        └─────────────────────────┘
+├── drizzle.config.ts         # Drizzle ORM config
+├── package.json
+├── tsconfig.json
+├── Readme.md
+├── drizzle/                  # Drizzle migration output
+│   ├── 0000_marvelous_scourge.sql
+│   └── meta/
+│       ├── _journal.json
+│       └── 0000_snapshot.json
+├── src/
+│   ├── app.ts                # Express app entry
+│   ├── config/               # Configs (db, env, logger, etc)
+│   ├── controllers/          # Route controllers
+│   ├── db/                   # DB schema, table drop scripts
+│   ├── enums/                # Enums
+│   ├── middlewares/          # Auth, credit, etc
+│   ├── routes/               # Express routes
+│   ├── services/             # Business logic
+│   └── utils/                # Prompt builder, types, helpers
 ```
 
-## Local Development
-1. Clone the repository
-   ```bash
-   git clone <repo-url>
-   cd fourpaws_be
-   ```
-2. Create a `.env` file based on `.env.example` and update database credentials.
-   Set `DEFAULT_FOLLOW_USER_ID` to the numeric ID of the Four Paws account so
-   new users automatically follow it on registration.
-3. Install dependencies
-   ```bash
-   npm install
-   ```
-4. Run migrations (for local development)
-   ```bash
-   npm run migration:generate
-   npm run migration:push
-   ```
-5. Start the API server
-   ```bash
-   npm run dev
-   ```
-6. Visit `http://localhost:<port>/api/v1` to access the endpoints.
-7. Run the automated test suite
-   ```bash
-   npm test
-   ```
+---
 
-### Public Web Endpoints
+## 🛠️ Getting Started
 
-| Method | Path | Description |
-| ------ | ---- | ----------- |
-| `GET`  | `/api/v1/web/profiles` | List public user profiles |
-| `GET`  | `/api/v1/web/discover/profiles` | Discover profiles by follower count |
-| `GET`  | `/api/v1/web/discover/posts` | Discover popular posts |
-| `GET`  | `/api/v1/web/registrations` | **Admin only** municipal registration list |
+### 1. Clone the repository
 
-## Next Steps
-A major database schema redesign is planned. Tasks for the upcoming iteration are listed in [docs/improvements-checklist.md](docs/improvements-checklist.md).
+```bash
+git clone https://github.com/2021eo3ar/varune-narrative-assignment.git
+cd varune-narrative-assignment
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure Environment
+
+- Copy `.env.example` to `.env` and fill in your database and API keys.
+```
+PORT=8000
+DB_URL=
+JWT_SECRET=
+EXPIREATION_MINUTE=43200
+BASE_URL=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_CALLBACK_URL=http://localhost:8000/api/v1/auth/google/callback
+CLIENT_REDIRECT_URL=
+GROQ_API=
+```
+
+### 4. Run Database Migrations
+
+```bash
+npm run migration:generate
+npm run migration:push
+```
+
+### 5. Start the Backend Server
+
+```bash
+npm run dev
+```
+
+The server will start on the port specified in your `.env` file (default: 8000).
+
+---
+
+## 🔄 Workflow Diagram
+
+```
+┌──────────────┐   Request   ┌──────────────┐   Validate   ┌──────────────┐
+│   Client     │ ──────────▶ │   Express    │ ───────────▶ │  Middleware  │
+└──────────────┘             └──────────────┘   (Auth,     └──────────────┘
+        ▲                          │           Credit)           │
+        │                          ▼                             ▼
+        │                  ┌──────────────┐               ┌──────────────┐
+        │                  │ Controller   │               │  Prompt      │
+        │                  │ (narrative)  │               │  Builder     │
+        │                  └──────────────┘               └──────────────┘
+        │                          │                             │
+        │                          ▼                             ▼
+        │                  ┌──────────────┐               ┌──────────────┐
+        │                  │  Drizzle ORM │               │  AI Model    │
+        │                  └──────────────┘               └──────────────┘
+        │                          │                             │
+        │                          ▼                             ▼
+        │                  ┌──────────────┐               ┌──────────────┐
+        │                  │  PostgreSQL  │               │  Response    │
+        │                  └──────────────┘               └──────────────┘
+        │                          │                             │
+        │                          ▼                             ▼
+        └───────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🧪 Testing
+
+Test endpoints using Postman or any API client. For chat continuity, always pass the original task and chat history as described in the API docs.
+
+---
+
+## 📄 License
+
+MIT License
+
+---
+
+## 🌐 Live Backend (Demo)
+
+> https://varune-backend-demo.example.com
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
 
