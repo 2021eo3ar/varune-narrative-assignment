@@ -6,7 +6,9 @@ import  {narrativeController}  from "../controllers";
 
 const router = express.Router();
 
+
 router.post("/generate", authenticateUser, checkAndDeductCredits(1), narrativeController.generateNarrative)
 router.get("/userChats", authenticateUser, narrativeController.getAllChats)
+router.get("/userCredits", authenticateUser, narrativeController.getUserCredits)
 
 export default router;

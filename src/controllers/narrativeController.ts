@@ -8,8 +8,8 @@ import postgreDb from "../config/dbConfig";
 import { UserService } from "../services";
 
 export default class NarrativeController {
-  
-  static async generateNarrative(req: Request, res: Response): Promise<any> {
+
+  static generateNarrative = async(req: Request, res: Response): Promise<any> => {
     try {
       const {
         industry,
@@ -148,19 +148,56 @@ export default class NarrativeController {
         }
       ]);
 
+      // Fetch updated user (for latest credits)
+      const updatedUser = await UserService.getUser(email);
+
       res.status(200).json({
         success: true,
         data: {
           response,
           chatId: newChatId,
-          originalTask: origTask || prompt
+          originalTask: origTask || prompt,
+          user: {
+            credits: updatedUser?.credits,
+            lastCreditReset: updatedUser?.lastCreditReset,
+            name: updatedUser?.name,
+            email: updatedUser?.email,
+            publicId: updatedUser?.publicId,
+            profileImage: updatedUser?.profileImage
+          }
+        }
+      });
+    }
+    catch(error) {
+      console.error("Error generating narrative:", error);
+      res.status(500).json({ success: false, message: "Internal server error" });
+    }
+  } 
+  // API to fetch user's credits and info
+  static getUserCredits = async (req: Request, res: Response): Promise<any> => {
+    try {
+      const { email } = req.user as { email: string };
+      const user = await UserService.getUser(email);
+      if (!user) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+      return res.status(200).json({
+        success: true,
+        data: {
+          credits: user.credits,
+          lastCreditReset: user.lastCreditReset,
+          name: user.name,
+          email: user.email,
+          publicId: user.publicId,
+          profileImage: user.profileImage
         }
       });
     } catch (err) {
-      console.error("Error generating narrative:", err);
+      console.error("Error fetching user credits:", err);
       res.status(500).json({ success: false, message: "Internal server error" });
     }
   }
+    
    
    static getAllChats = async (req: Request, res: Response): Promise<any> => {
     try {
