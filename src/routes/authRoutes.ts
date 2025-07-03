@@ -13,9 +13,8 @@ router.get(
   passport.authenticate("google", { session: false, failureRedirect: "/login" }),
   authController.googleCallback
 );
-// router.post("/login",validateRequest(AuthValidators.validateLoginUser),authController.loginUser)
-// router.post("/verify-otp",authenticateUser,validateRequest(AuthValidators.validateVerifyOtp), authController.verifyOtp)
-// router.post("/update-wallet",authenticateUser,validateRequest(AuthValidators.validateUpdateWallet), authController.updateWallet)
-// router.post("/google-login", authController.googleLogin)
+
+// Real logout route (POST for security, clears cookies)
+router.post("/logout", authController.logout);
 
 export default router;

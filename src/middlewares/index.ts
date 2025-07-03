@@ -1,67 +1,74 @@
 import { Request, Response, NextFunction } from "express";
 import { AnyZodObject, z, ZodError } from "zod";
-import passport from 'passport';
-// import { UserService } from "../services";
+import passport from "passport";
+import { UserService } from "../services";
 
-
-const TokenHeaderSchema = z.object({
-  header:z.object({
-    authorization: z.string().regex(/^Bearer\s+[a-zA-Z0-9-_]+\.[a-zA-Z0-9-_]+\.[a-zA-Z0-9-_]+$/, {
-      message: "Invalid Authorization token format"
-  })
-  })
-});
-
-const validateRequestHeader = (schema: AnyZodObject) => async (req: Request, res: Response, next: NextFunction) => {
-  try {
-      const tokenHeader = req.headers['authorization']; 
-    
-      await schema.parseAsync({ header:{ authorization: tokenHeader}});
-      req.header['authorization'] = tokenHeader;
-      
-      next();
-  } catch (error) {
-      return res.status(400).send({ status: false, message: "Invalid Headers Authorization Token Missing." });
+// Extract token from Authorization header or cookie
+function extractToken(req: Request) {
+  let token = null;
+  const authHeader = req.headers["authorization"];
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.replace("Bearer ", "").trim();
+  } else if (req.cookies && req.cookies.accessToken) {
+    token = req.cookies.accessToken;
+    console.log(token,"token from cookie");
   }
-};
+  return token;
+}
 
-const verifyCallback = (req:Request, resolve:any, reject:any,res:Response) => async (err:any, user:any, info:any) => {
- 
-  if (err || info || !user) {
-    return reject(new Error('UNAUTHOURIZED USER'));
-  }
-  req["user"] = user;
-  resolve();
-};
+const verifyCallback =
+  (req: Request, resolve: any, reject: any, res: Response) =>
+  async (err: any, user: any, info: any) => {
+    if (err || info || !user) {
+      return reject(new Error("UNAUTHOURIZED USER"));
+    }
+    req["user"] = user;
+    resolve();
+  };
 
-export const authenticateUserJwt = () => async (req:any, res:any, next:NextFunction) => {
-  
-  return new Promise((resolve, reject) => {
-    passport.authenticate('jwt', { session: false }, verifyCallback(req, resolve, reject,res))(req, res, next);
-  })
-    .then(() =>{ next() })
-    .catch((err) => {
-      if(res)return res.status(401).send({success:false,error:"UNAUTHOURIZED USER"});
-      next(err)
-    });
-};
+export const authenticateUserJwt =
+  () => async (req: any, res: any, next: NextFunction) => {
+    const token = extractToken(req);
+    if (!token) {
+      return res
+        .status(401)
+        .send({ success: false, error: "UNAUTHOURIZED USER" });
+    }
+    req.headers["authorization"] = `Bearer ${token}`;
+    return new Promise((resolve, reject) => {
+      passport.authenticate(
+        "jwt",
+        { session: false },
+        verifyCallback(req, resolve, reject, res)
+      )(req, res, next);
+    })
+      .then(() => {
+        next();
+      })
+      .catch((err) => {
+        if (res)
+          return res
+            .status(401)
+            .send({ success: false, error: "UNAUTHOURIZED USER" });
+        next(err);
+      });
+  };
 
-export const authenticateUser = [
-  validateRequestHeader(TokenHeaderSchema),
-  authenticateUserJwt()
-]
+export const authenticateUser = [authenticateUserJwt()];
 
 // export const authorizeAdmin = async (
 //   req: Request,
 //   res: Response,
 //   next: NextFunction
-// ) : Promise<any> => {
+// ): Promise<any> => {
 //   try {
 //     const userId = (req as any)["user"]?.userId;
 //     if (!userId) {
-//       return res.status(401).send({ success: false, error: "UNAUTHOURIZED USER" });
+//       return res
+//         .status(401)
+//         .send({ success: false, error: "UNAUTHOURIZED USER" });
 //     }
-//     const user = await UserService.getUserById(userId);
+//     const user = await UserService.getUser(userId);
 //     if (!user || user.role !== "admin") {
 //       return res.status(403).send({ success: false, error: "Forbidden" });
 //     }

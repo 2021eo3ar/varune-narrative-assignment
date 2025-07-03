@@ -8,7 +8,8 @@ import cors from "cors"
 import { envConfigs } from './config/envconfig';
 import "./config/passport"
 import session from 'express-session';
-
+import cookieParser from 'cookie-parser';
+import { corsMiddleware } from './middlewares/cors';
 
 
 dotenv.config();
@@ -23,12 +24,14 @@ app.use( session({
   }))
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors({
-  origin: "*",
-  credentials: true,
-}));
+// app.use(cors({
+//   origin: "*",
+//   credentials: true,
+// }));
+app.use(cookieParser());
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(corsMiddleware);
 
 
 passport.use('jwt', jwtStrategy);
