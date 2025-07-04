@@ -1,6 +1,3 @@
-
-
-
 export interface BrandNarrativeParams {
   industry: string;
   brandValues: string[];
@@ -16,30 +13,30 @@ export interface BrandNarrativeParams {
 }
 
 export const buildPrompt = (
-  params: BrandNarrativeParams,
+  params?: BrandNarrativeParams,
   chatHistory?: { role: string; content: string }[],
   originalTask?: string,
-  newInstruction?: string
+  newInstruction?: string,
 ): string => {
-  const {
-    industry,
-    brandValues,
-    targetAudience,
-    brandMission,
-    brandVision,
-    usp,
-    brandPersonality,
-    toneOfVoice,
-    keyProducts,
-    brandStory,
-    narrativeLength
-  } = params;
-
   let prompt = "";
   // Always start with the original task for context
   if (originalTask) {
     prompt += `Original Task/Goal: ${originalTask}\n`;
   } else {
+    const {
+      industry,
+      brandValues,
+      targetAudience,
+      brandMission,
+      brandVision,
+      usp,
+      brandPersonality,
+      toneOfVoice,
+      keyProducts,
+      brandStory,
+      narrativeLength,
+    } = params;
+
     prompt += `You are a luxury brand strategist. Craft a compelling and emotionally engaging brand narrative based on the following inputs:\n\n`;
     prompt += `Industry: ${industry}\n`;
     prompt += `Brand Values: ${brandValues.join(", ")}\n`;
@@ -56,12 +53,12 @@ export const buildPrompt = (
   }
 
   // Add chat history for context
-  if (chatHistory && chatHistory.length > 0) {
-    prompt += `\nChat History (for context):\n`;
-    chatHistory.forEach((msg) => {
-      prompt += `[${msg.role.toUpperCase()}]: ${msg.content}\n`;
-    });
-  }
+  // if (chatHistory && chatHistory.length > 0) {
+  //   prompt += `\nChat History (for context):\n`;
+  //   chatHistory.forEach((msg) => {
+  //     prompt += `[${msg.role.toUpperCase()}]: ${msg.content}\n`;
+  //   });
+  // }
 
   // Add the new instruction as the latest user request
   if (newInstruction) {

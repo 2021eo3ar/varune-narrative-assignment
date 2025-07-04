@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import cors, { CorsOptions } from "cors";
 import { envConfigs } from "../config/envconfig";
-const allowedOrigins = ["http://localhost:5173", envConfigs.CLIENT_REDIRECT_URL];
+const allowedOrigins = [
+  "http://localhost:5173",
+  envConfigs.CLIENT_REDIRECT_URL,
+];
 const corsOptions: CorsOptions = {
   origin: function (origin, callback) {
     console.log(`:mag: CORS Origin Attempt: ${origin}`);
@@ -19,8 +22,3 @@ const corsOptions: CorsOptions = {
   optionsSuccessStatus: 204,
 };
 export const corsMiddleware = cors(corsOptions);
-
-
-
-
-
